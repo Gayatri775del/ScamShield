@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ScamShield</title>
+
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+
+    <div class="app">
+
+        <!-- Header -->
+        <header class="header">
+
+            <div class="brand">
+                <div class="logo">🛡️</div>
+
+                <div>
+                    <h1>ScamShield</h1>
+                    <p>AI-Powered Protection</p>
+                </div>
+            </div>
+
+            <div class="status-dot"></div>
+
+        </header>
+
+
+        <!-- Current Website -->
+        <section class="website-card">
+
+            <div class="section-label">
+                CURRENT WEBSITE
+            </div>
+
+            <div class="website-info">
+
+                <div class="website-icon">
+                    🌐
+                </div>
+
+                <div class="website-details">
+
+                    <div id="websiteName">
+                        Current Website
+                    </div>
+
+                    <div id="websiteUrl">
+                        Detecting URL...
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Risk Section -->
+        <section class="risk-card">
+
+            <div class="risk-header">
+
+                <div>
+                    <p class="section-label">SECURITY STATUS</p>
+
+                    <h2 id="riskLevel">
+                        Ready to Scan
+                    </h2>
+                </div>
+
+                <div class="shield-circle">
+                    🛡️
+                </div>
+
+            </div>
+
+
+            <div class="risk-score">
+
+                <span id="riskScore">
+                    --
+                </span>
+
+                <span class="score-label">
+                    / 100
+                </span>
+
+            </div>
+
+
+            <div class="progress-container">
+
+                <div
+                    id="riskProgress"
+                    class="progress-bar">
+                </div>
+
+            </div>
+
+
+            <p id="riskDescription" class="risk-description">
+                Scan this website to check for potential scam indicators.
+            </p>
+
+        </section>
+
+
+        <!-- Scan Button -->
+
+        <button id="scanButton" class="scan-button">
+
+            <span>🔍</span>
+
+            Scan This Website
+
+        </button>
+
+
+        <!-- Why Suspicious -->
+
+        <section class="info-section">
+
+            <div class="section-title">
+
+                <span>⚠️</span>
+
+                <h3>Detected Indicators</h3>
+
+            </div>
+
+            <ul id="indicators">
+
+                <li>
+                    Scan required
+                </li>
+
+            </ul>
+
+        </section>
+
+
+        <!-- Recommendation -->
+
+        <section class="recommendation">
+
+            <div class="section-title">
+
+                <span>💡</span>
+
+                <h3>Recommended Action</h3>
+
+            </div>
+
+            <p id="recommendationText">
+                Run a scan to receive safety recommendations.
+            </p>
+
+        </section>
+
+
+        <!-- Report -->
+
+        <button id="reportButton" class="report-button">
+
+            🚩 Report Suspicious Website
+
+        </button>
+
+
+        <!-- Footer -->
+
+        <footer>
+
+            <span>ScamShield</span>
+
+            <span>•</span>
+
+            <span>Your safety matters</span>
+
+        </footer>
+
+    </div>
+
+    <script src="popup.js"></script>
+
+</body>
+
+</html>
