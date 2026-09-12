@@ -1,7 +1,10 @@
 {
   "manifest_version": 3,
+
   "name": "ScamShield",
+
   "version": "1.0.0",
+
   "description": "AI-powered browser extension for detecting potential online scams.",
 
   "permissions": [
@@ -12,5 +15,16 @@
 
   "action": {
     "default_popup": "popup.html"
-  }
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ]
 }

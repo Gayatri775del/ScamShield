@@ -1,4 +1,3 @@
-// Get elements from the popup
 const scanButton = document.getElementById("scanButton");
 const reportButton = document.getElementById("reportButton");
 
@@ -11,11 +10,12 @@ const riskProgress = document.getElementById("riskProgress");
 const riskDescription = document.getElementById("riskDescription");
 
 const indicators = document.getElementById("indicators");
-const recommendationText = document.getElementById("recommendationText");
+const recommendationText =
+    document.getElementById("recommendationText");
 
 
 // ------------------------------------
-// Get the current browser tab
+// Get current tab
 // ------------------------------------
 
 async function getCurrentTab() {
@@ -30,7 +30,7 @@ async function getCurrentTab() {
 
 
 // ------------------------------------
-// Display current website
+// Display website information
 // ------------------------------------
 
 async function loadCurrentWebsite() {
@@ -40,17 +40,17 @@ async function loadCurrentWebsite() {
         const tab = await getCurrentTab();
 
         if (!tab || !tab.url) {
+
             websiteName.textContent = "Unable to detect";
             websiteUrl.textContent = "No URL available";
+
             return;
         }
 
         const url = tab.url;
 
-        // Display full URL
         websiteUrl.textContent = url;
 
-        // Try to extract domain name
         try {
 
             const domain = new URL(url).hostname;
@@ -65,7 +65,7 @@ async function loadCurrentWebsite() {
 
     } catch (error) {
 
-        console.error("Error getting current tab:", error);
+        console.error(error);
 
         websiteName.textContent = "Unable to detect";
         websiteUrl.textContent = "Error reading URL";
@@ -74,117 +74,153 @@ async function loadCurrentWebsite() {
 
 
 // ------------------------------------
-// Scan button
+// Scan website
 // ------------------------------------
 
 scanButton.addEventListener("click", async () => {
 
     scanButton.disabled = true;
 
-    scanButton.innerHTML = "⏳ Scanning...";
+    scanButton.innerHTML = "⏳ Reading Website...";
 
-    riskLevel.textContent = "Scanning";
+    riskLevel.textContent = "Analyzing";
 
     riskScore.textContent = "--";
 
     riskProgress.style.width = "0%";
 
     riskDescription.textContent =
-        "Preparing the website for security analysis...";
+        "Reading the current webpage...";
 
     indicators.innerHTML = `
-        <li>Collecting website information...</li>
+        <li>Extracting webpage content...</li>
     `;
 
     recommendationText.textContent =
-        "Please wait while ScamShield analyzes this website.";
+        "ScamShield is collecting information for analysis.";
 
     try {
 
         const tab = await getCurrentTab();
 
-        console.log("Website URL:", tab.url);
+        // Send message to content.js
+        const response = await chrome.tabs.sendMessage(
+            tab.id,
+            {
+                action: "extractPageText"
+            }
+        );
 
-        // For now, we are only displaying the URL.
-        // Vercel + Groq will be connected later.
+        if (!response || !response.success) {
 
-        setTimeout(() => {
+            throw new Error(
+                "Unable to extract webpage text."
+            );
+        }
 
-            riskLevel.textContent = "Ready";
+        const pageText = response.text;
 
-            riskScore.textContent = "--";
+        console.log("URL:", tab.url);
 
-            riskProgress.style.width = "0%";
+        console.log(
+            "Page text:",
+            pageText
+        );
 
-            riskDescription.textContent =
-                "Backend analysis will be connected next.";
+        console.log(
+            "Characters extracted:",
+            pageText.length
+        );
 
-            indicators.innerHTML = `
-                <li>URL successfully detected</li>
-                <li>Ready for security analysis</li>
-            `;
 
-            recommendationText.textContent =
-                "The ScamShield analysis engine is being prepared.";
+        // Display successful extraction
 
-            scanButton.disabled = false;
+        riskLevel.textContent = "Ready";
 
-            scanButton.innerHTML =
-                "🔍 Scan This Website";
+        riskDescription.textContent =
+            "Website content successfully extracted.";
 
-        }, 1000);
+        indicators.innerHTML = `
+            <li>URL detected</li>
+            <li>Webpage text extracted</li>
+            <li>${pageText.length} characters collected</li>
+        `;
+
+        recommendationText.textContent =
+            "Ready for scam analysis.";
+
+        scanButton.innerHTML =
+            "🔍 Scan This Website";
+
+        scanButton.disabled = false;
+
 
     } catch (error) {
 
-        console.error("Scan error:", error);
+        console.error(
+            "Scan error:",
+            error
+        );
 
         riskLevel.textContent = "Error";
 
         riskDescription.textContent =
-            "Unable to access the current website.";
+            "Could not read this webpage.";
 
-        scanButton.disabled = false;
+        indicators.innerHTML = `
+            <li>Unable to extract webpage content</li>
+        `;
+
+        recommendationText.textContent =
+            "Try refreshing the webpage and scanning again.";
 
         scanButton.innerHTML =
             "🔍 Scan This Website";
+
+        scanButton.disabled = false;
     }
 
 });
 
 
 // ------------------------------------
-// Report button
+// Report website
 // ------------------------------------
 
-reportButton.addEventListener("click", async () => {
+reportButton.addEventListener(
+    "click",
+    async () => {
 
-    const tab = await getCurrentTab();
+        const tab = await getCurrentTab();
 
-    if (!tab || !tab.url) {
-        alert("Unable to detect the website URL.");
-        return;
-    }
+        if (!tab || !tab.url) {
 
-    const confirmed = confirm(
-        "Do you want to report this website as suspicious?"
-    );
+            alert(
+                "Unable to detect the website URL."
+            );
 
-    if (confirmed) {
+            return;
+        }
 
-        console.log("Reported website:", tab.url);
-
-        alert(
-            "Thank you. Your report will be submitted."
+        const confirmed = confirm(
+            "Do you want to report this website as suspicious?"
         );
 
-        // Later:
-        // popup → Vercel → Supabase
+        if (confirmed) {
+
+            console.log(
+                "Reported website:",
+                tab.url
+            );
+
+            alert(
+                "Thank you. Your report will be submitted."
+            );
+        }
     }
-});
+);
 
 
-// ------------------------------------
-// Run when popup opens
-// ------------------------------------
+// Load website when popup opens
 
 loadCurrentWebsite();
