@@ -2,6 +2,8 @@
 // ScamShield Popup
 // ============================================
 
+const API_URL = "http://localhost:3000/api/scan";
+
 const websiteName = document.getElementById("websiteName");
 const websiteUrl = document.getElementById("websiteUrl");
 
@@ -41,11 +43,7 @@ async function loadCurrentWebsite() {
 
     try {
 
-        console.log("Getting current tab...");
-
         const tab = await getCurrentTab();
-
-        console.log("Current tab:", tab);
 
         if (!tab || !tab.url) {
 
@@ -57,7 +55,6 @@ async function loadCurrentWebsite() {
 
         const url = tab.url;
 
-        // Display URL immediately
         websiteUrl.textContent = url;
 
         try {
@@ -76,60 +73,22 @@ async function loadCurrentWebsite() {
 
     } catch (error) {
 
-        console.error(
-            "URL detection error:",
-            error
-        );
+        console.error("URL detection error:", error);
 
         websiteName.textContent = "Unable to detect";
 
-        websiteUrl.textContent =
-            "Error reading URL";
+        websiteUrl.textContent = "Error reading URL";
     }
 }
 
 
 // ============================================
-// Scan website
+// Get webpage content
 // ============================================
 
-scanButton.addEventListener("click", async () => {
-
-    scanButton.disabled = true;
-
-    scanButton.innerHTML = "⏳ Scanning...";
-
-    riskLevel.textContent = "Analyzing";
-
-    riskScore.textContent = "--";
-
-    riskProgress.style.width = "0%";
-
-    riskDescription.textContent =
-        "Analyzing this webpage...";
-
-    indicators.innerHTML = `
-        <li>Reading webpage content...</li>
-    `;
-
-    recommendationText.textContent =
-        "Please wait while ScamShield analyzes this website.";
-
+async function getPageContent(tab) {
 
     try {
-
-        const tab = await getCurrentTab();
-
-        if (!tab || !tab.id) {
-
-            throw new Error(
-                "Could not access current tab."
-            );
-        }
-
-
-        console.log("Sending scan request...");
-
 
         const response = await chrome.tabs.sendMessage(
             tab.id,
@@ -138,111 +97,177 @@ scanButton.addEventListener("click", async () => {
             }
         );
 
-
-        console.log(
-            "Scan response:",
-            response
-        );
-
-
         if (!response || !response.success) {
 
             throw new Error(
-                "No valid response from content.js"
+                "Could not get webpage content."
             );
         }
 
-
-        const analysis =
-            response.analysis;
-
-
-        // ====================================
-        // Display score
-        // ====================================
-
-        riskScore.textContent =
-            analysis.score;
-
-
-        riskProgress.style.width =
-            analysis.score + "%";
-
-
-        // ====================================
-        // Display risk level
-        // ====================================
-
-        riskLevel.textContent =
-            analysis.riskLevel + " RISK";
-
-
-        // ====================================
-        // Display description
-        // ====================================
-
-        if (analysis.riskLevel === "HIGH") {
-
-            riskDescription.textContent =
-                "Multiple indicators commonly associated with scams were detected.";
-
-        } else if (analysis.riskLevel === "MEDIUM") {
-
-            riskDescription.textContent =
-                "Some suspicious indicators were detected. Proceed carefully.";
-
-        } else {
-
-            riskDescription.textContent =
-                "No major scam indicators were detected.";
-
-        }
-
-
-        // ====================================
-        // Display indicators
-        // ====================================
-
-        if (
-            analysis.indicators &&
-            analysis.indicators.length > 0
-        ) {
-
-            indicators.innerHTML =
-                analysis.indicators
-                    .map(indicator => {
-
-                        return `<li>${indicator}</li>`;
-
-                    })
-                    .join("");
-
-        } else {
-
-            indicators.innerHTML =
-                "<li>No major scam indicators detected</li>";
-
-        }
-
-
-        // ====================================
-        // Recommendation
-        // ====================================
-
-        recommendationText.textContent =
-            analysis.recommendation;
-
+        return response;
 
     } catch (error) {
 
         console.error(
-            "Scan error:",
+            "Content extraction error:",
             error
         );
 
+        throw new Error(
+            "Could not read webpage. Try refreshing the page."
+        );
+    }
+}
+
+
+// ============================================
+// Send data to backend
+// ============================================
+
+async function scanWithBackend(url, pageText) {
+
+    console.log("Sending data to backend...");
+
+    const response = await fetch(API_URL, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+            url: url,
+
+            text: pageText
+
+        })
+
+    });
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            `Backend returned ${response.status}`
+        );
+    }
+
+
+    const data = await response.json();
+
+    console.log(
+        "Backend result:",
+        data
+    );
+
+
+    if (!data.success) {
+
+        throw new Error(
+            data.error || "Scan failed."
+        );
+    }
+
+
+    return data;
+}
+
+
+// ============================================
+// Display scan result
+// ============================================
+
+function displayResult(analysis) {
+
+    // Score
+
+    riskScore.textContent =
+        analysis.score;
+
+    riskProgress.style.width =
+        analysis.score + "%";
+
+
+    // Risk level
+
+    riskLevel.textContent =
+        analysis.riskLevel + " RISK";
+
+
+    // Description
+
+    if (analysis.riskLevel === "HIGH") {
+
+        riskDescription.textContent =
+            "Multiple indicators commonly associated with scams were detected.";
+
+    } else if (analysis.riskLevel === "MEDIUM") {
+
+        riskDescription.textContent =
+            "Some suspicious indicators were detected. Proceed carefully.";
+
+    } else {
+
+        riskDescription.textContent =
+            "No major scam indicators were detected.";
+
+    }
+
+
+    // Indicators
+
+    if (
+        analysis.indicators &&
+        analysis.indicators.length > 0
+    ) {
+
+        indicators.innerHTML =
+            analysis.indicators
+                .map(indicator => {
+
+                    const li =
+                        document.createElement("li");
+
+                    li.textContent = indicator;
+
+                    return li.outerHTML;
+
+                })
+                .join("");
+
+    } else {
+
+        indicators.innerHTML =
+            "<li>No major scam indicators detected</li>";
+
+    }
+
+
+    // Recommendation
+
+    recommendationText.textContent =
+        analysis.recommendation;
+}
+
+
+// ============================================
+// Scan website
+// ============================================
+
+scanButton.addEventListener(
+    "click",
+    async () => {
+
+        scanButton.disabled = true;
+
+        scanButton.innerHTML =
+            "⏳ Scanning...";
+
 
         riskLevel.textContent =
-            "ERROR";
+            "Analyzing";
 
         riskScore.textContent =
             "--";
@@ -250,25 +275,109 @@ scanButton.addEventListener("click", async () => {
         riskProgress.style.width =
             "0%";
 
+
         riskDescription.textContent =
-            "Unable to analyze this webpage.";
+            "Reading webpage and analyzing scam indicators...";
+
 
         indicators.innerHTML = `
-            <li>Could not read webpage content</li>
+            <li>Extracting webpage content...</li>
         `;
 
+
         recommendationText.textContent =
-            "Refresh the webpage and try scanning again.";
+            "Please wait while ScamShield analyzes this website.";
 
-    } finally {
 
-        scanButton.disabled = false;
+        try {
 
-        scanButton.innerHTML =
-            "🔍 Scan This Website";
+            // Get current tab
+
+            const tab =
+                await getCurrentTab();
+
+
+            if (!tab || !tab.id || !tab.url) {
+
+                throw new Error(
+                    "Could not access current website."
+                );
+            }
+
+
+            console.log(
+                "Scanning URL:",
+                tab.url
+            );
+
+
+            // Get webpage text
+
+            const pageData =
+                await getPageContent(tab);
+
+
+            console.log(
+                "Page text length:",
+                pageData.text.length
+            );
+
+
+            // Send to backend
+
+            const analysis =
+                await scanWithBackend(
+                    tab.url,
+                    pageData.text
+                );
+
+
+            // Display result
+
+            displayResult(analysis);
+
+
+        } catch (error) {
+
+            console.error(
+                "Scan error:",
+                error
+            );
+
+
+            riskLevel.textContent =
+                "ERROR";
+
+            riskScore.textContent =
+                "--";
+
+            riskProgress.style.width =
+                "0%";
+
+
+            riskDescription.textContent =
+                error.message;
+
+
+            indicators.innerHTML = `
+                <li>Unable to complete scan</li>
+            `;
+
+
+            recommendationText.textContent =
+                "Make sure the backend is running and try again.";
+
+        } finally {
+
+            scanButton.disabled =
+                false;
+
+            scanButton.innerHTML =
+                "🔍 Scan This Website";
+        }
+
     }
-
-});
+);
 
 
 // ============================================
@@ -281,7 +390,9 @@ reportButton.addEventListener(
 
         try {
 
-            const tab = await getCurrentTab();
+            const tab =
+                await getCurrentTab();
+
 
             if (!tab || !tab.url) {
 
@@ -292,21 +403,31 @@ reportButton.addEventListener(
                 return;
             }
 
-            const confirmed = confirm(
-                "Do you want to report this website as suspicious?"
+
+            const confirmed =
+                confirm(
+                    "Do you want to report this website as suspicious?"
+                );
+
+
+            if (!confirmed) {
+
+                return;
+            }
+
+
+            console.log(
+                "Reported website:",
+                tab.url
             );
 
-            if (confirmed) {
 
-                console.log(
-                    "Reported website:",
-                    tab.url
-                );
+            // Temporary MVP report
 
-                alert(
-                    "Thank you. Your report will be submitted."
-                );
-            }
+            alert(
+                "Thank you. Your report has been recorded for the ScamShield MVP."
+            );
+
 
         } catch (error) {
 
@@ -314,6 +435,7 @@ reportButton.addEventListener(
                 "Report error:",
                 error
             );
+
 
             alert(
                 "Unable to submit the report."
